@@ -1,0 +1,63 @@
+{% extends 'recipes/base.html' %}
+
+{% block title %}Home - Recipe App{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold">Welcome to Recipe App</h1>
+    <p class="lead">Discover, share, and create amazing recipes!</p>
+    <a href="{% url 'recipe_list' %}" class="btn btn-primary btn-lg me-2">Browse Recipes</a>
+    {% if user.is_authenticated %}
+    <a href="{% url 'recipe_create' %}" class="btn btn-outline-primary btn-lg">Add Your Recipe</a>
+    {% else %}
+    <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg">Login to Add Recipe</a>
+    {% endif %}
+</div>
+
+<div class="mb-5">
+    <h2 class="mb-4">Recent Recipes</h2>
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for recipe in recent_recipes %}
+        <div class="col">
+            <div class="card">
+                {% if recipe.image %}
+                <img src="{{ recipe.image.url }}" class="card-img-top recipe-image" alt="{{ recipe.title }}">
+                {% else %}
+                <div class="recipe-image bg-secondary d-flex align-items-center justify-content-center">
+                    <i class="bi bi-image" style="font-size: 3rem; color: white;"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ recipe.title }}</h5>
+                    <p class="card-text text-muted">{{ recipe.description|truncatewords:15 }}</p>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted">
+                            <i class="bi bi-clock"></i> {{ recipe.total_time }} min
+                        </small>
+                        <span class="badge bg-{{ recipe.difficulty }}">{{ recipe.get_difficulty_display }}</span>
+                    </div>
+                    <a href="{% url 'recipe_detail' recipe.pk %}" class="btn btn-sm btn-primary">View Recipe</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <p class="text-center text-muted">No recipes available yet. Be the first to add one!</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if categories %}
+<div>
+    <h2 class="mb-4">Browse by Category</h2>
+    <div class="d-flex flex-wrap gap-2">
+        {% for category in categories %}
+        <a href="{% url 'recipe_list' %}?category={{ category.id }}" class="btn btn-outline-secondary">
+            {{ category.name }} ({{ category.recipes.count }})
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

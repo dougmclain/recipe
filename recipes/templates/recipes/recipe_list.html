@@ -1,0 +1,107 @@
+{% extends 'recipes/base.html' %}
+
+{% block title %}All Recipes - Recipe App{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">All Recipes</h1>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control" placeholder="Search recipes..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="category" class="form-control">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="difficulty" class="form-control">
+                    <option value="">All Difficulties</option>
+                    <option value="easy" {% if selected_difficulty == 'easy' %}selected{% endif %}>Easy</option>
+                    <option value="medium" {% if selected_difficulty == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="hard" {% if selected_difficulty == 'hard' %}selected{% endif %}>Hard</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+    {% for recipe in recipes %}
+    <div class="col">
+        <div class="card">
+            {% if recipe.image %}
+            <img src="{{ recipe.image.url }}" class="card-img-top recipe-image" alt="{{ recipe.title }}">
+            {% else %}
+            <div class="recipe-image bg-secondary d-flex align-items-center justify-content-center">
+                <i class="bi bi-image" style="font-size: 3rem; color: white;"></i>
+            </div>
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title">{{ recipe.title }}</h5>
+                <p class="card-text text-muted">{{ recipe.description|truncatewords:15 }}</p>
+                <div class="mb-2">
+                    {% if recipe.category %}
+                    <span class="badge bg-info text-dark">{{ recipe.category.name }}</span>
+                    {% endif %}
+                    <span class="badge bg-secondary">{{ recipe.get_difficulty_display }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small class="text-muted">
+                        <i class="bi bi-clock"></i> {{ recipe.total_time }} min
+                    </small>
+                    <small class="text-muted">
+                        <i class="bi bi-people"></i> {{ recipe.servings }} servings
+                    </small>
+                </div>
+                <a href="{% url 'recipe_detail' recipe.pk %}" class="btn btn-sm btn-primary">View Recipe</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            No recipes found. {% if user.is_authenticated %}<a href="{% url 'recipe_create' %}">Add the first recipe!</a>{% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if is_paginated %}
+<nav>
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">First</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+        </li>
+        {% endif %}
+
+        <li class="page-item active">
+            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Last</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
