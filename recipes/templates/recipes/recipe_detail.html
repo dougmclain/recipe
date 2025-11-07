@@ -3,9 +3,9 @@
 {% block title %}{{ recipe.title }} - Recipe App{% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="row recipe-detail-content">
     <div class="col-lg-8">
-        <div class="mb-3">
+        <div class="mb-3 no-print">
             <a href="{% url 'recipe_list' %}" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Back to Recipes
             </a>
@@ -13,7 +13,7 @@
 
         <h1 class="mb-3">{{ recipe.title }}</h1>
 
-        <div class="mb-3">
+        <div class="mb-3 no-print">
             {% if recipe.category %}
             <span class="badge bg-info text-dark">{{ recipe.category.name }}</span>
             {% endif %}
@@ -27,33 +27,35 @@
         <img src="{{ recipe.image.url }}" class="img-fluid rounded mb-4" alt="{{ recipe.title }}">
         {% endif %}
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Description</h5>
-                <p class="card-text">{{ recipe.description }}</p>
-            </div>
+        <div class="recipe-detail-description mb-3">
+            <h5 class="text-primary mb-2">Description</h5>
+            <p class="mb-0">{{ recipe.description }}</p>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Ingredients</h5>
-                <ul class="list-unstyled">
+        <div class="no-print mb-3">
+            <button onclick="window.print()" class="btn btn-success">
+                <i class="bi bi-printer"></i> Print Recipe
+            </button>
+        </div>
+
+        <div id="printable-recipe">
+            <div class="recipe-section mb-3">
+                <h5 class="section-title text-primary border-bottom pb-2 mb-3">Ingredients</h5>
+                <ul class="ingredient-list">
                     {% for ingredient in recipe.ingredients.splitlines %}
                     <li><i class="bi bi-check-circle text-success"></i> {{ ingredient }}</li>
                     {% endfor %}
                 </ul>
             </div>
-        </div>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Instructions</h5>
-                <div style="white-space: pre-line;">{{ recipe.instructions }}</div>
+            <div class="recipe-section">
+                <h5 class="section-title text-primary border-bottom pb-2 mb-3">Instructions</h5>
+                <div class="instructions-text" style="white-space: pre-line; line-height: 1.8;">{{ recipe.instructions }}</div>
             </div>
         </div>
 
         {% if user.is_authenticated and user == recipe.author or user.is_superuser %}
-        <div class="mb-4">
+        <div class="mb-4 no-print">
             <a href="{% url 'recipe_update' recipe.pk %}" class="btn btn-warning">
                 <i class="bi bi-pencil"></i> Edit Recipe
             </a>

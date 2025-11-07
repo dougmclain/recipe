@@ -8,4 +8,5 @@ urlpatterns = [
     path('recipe/new/', views.RecipeCreateView.as_view(), name='recipe_create'),
     path('recipe/<int:pk>/edit/', views.RecipeUpdateView.as_view(), name='recipe_update'),
     path('recipe/<int:pk>/delete/', views.RecipeDeleteView.as_view(), name='recipe_delete'),
+    path('recipe/generate-ai-image/', views.generate_ai_image, name='generate_ai_image'),
 ]

@@ -100,9 +100,36 @@
 
                     <div class="mb-3">
                         <label for="{{ form.image.id_for_label }}" class="form-label">Recipe Image</label>
+                        
+                        <!-- AI Image Generation Button -->
+                        <div class="mb-2">
+                            <button type="button" id="generateAIImageBtn" class="btn btn-info btn-sm">
+                                <i class="bi bi-magic"></i> Generate AI Image
+                            </button>
+                            <small class="text-muted d-block mt-1">
+                                Generate a professional food photo using AI based on your recipe title
+                            </small>
+                        </div>
+
+                        <!-- Loading Spinner -->
+                        <div id="aiImageLoading" class="alert alert-info" style="display: none;">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            Generating AI image... This may take 10-30 seconds.
+                        </div>
+
+                        <!-- Preview Container -->
+                        <div id="aiImagePreview" style="display: none;" class="mb-2">
+                            <small class="text-success d-block mb-1">
+                                <i class="bi bi-check-circle"></i> AI Image Generated
+                            </small>
+                            <img id="aiImagePreviewImg" src="" class="img-thumbnail" style="max-width: 200px;">
+                        </div>
+
                         {{ form.image }}
                         {% if form.instance.image %}
-                        <div class="mt-2">
+                        <div class="mt-2" id="currentImageContainer">
                             <small>Current image:</small><br>
                             <img src="{{ form.instance.image.url }}" class="img-thumbnail" style="max-width: 200px;">
                         </div>
@@ -123,4 +150,88 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const generateBtn = document.getElementById('generateAIImageBtn');
+    const loadingDiv = document.getElementById('aiImageLoading');
+    const previewDiv = document.getElementById('aiImagePreview');
+    const previewImg = document.getElementById('aiImagePreviewImg');
+    const titleInput = document.getElementById('{{ form.title.id_for_label }}');
+    const descriptionInput = document.getElementById('{{ form.description.id_for_label }}');
+    
+    generateBtn.addEventListener('click', function() {
+        const title = titleInput.value.trim();
+        
+        if (!title) {
+            alert('Please enter a recipe title first!');
+            titleInput.focus();
+            return;
+        }
+        
+        // Show loading
+        generateBtn.disabled = true;
+        loadingDiv.style.display = 'block';
+        previewDiv.style.display = 'none';
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('description', descriptionInput.value.trim());
+        formData.append('csrfmiddlewaretoken', csrfToken);
+        
+        {% if form.instance.pk %}
+        formData.append('recipe_id', '{{ form.instance.pk }}');
+        {% endif %}
+        
+        // Make AJAX request
+        fetch('{% url "generate_ai_image" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingDiv.style.display = 'none';
+            generateBtn.disabled = false;
+            
+            if (data.success) {
+                {% if form.instance.pk %}
+                // For existing recipes, image is saved to server
+                if (data.image_url) {
+                    previewImg.src = data.image_url;
+                    previewDiv.style.display = 'block';
+                    // Hide current image container if exists
+                    const currentContainer = document.getElementById('currentImageContainer');
+                    if (currentContainer) {
+                        currentContainer.style.display = 'none';
+                    }
+                }
+                {% else %}
+                // For new recipes, show preview of generated image
+                if (data.image_data) {
+                    previewImg.src = data.image_data;
+                    previewDiv.style.display = 'block';
+                }
+                {% endif %}
+                alert(data.message);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            loadingDiv.style.display = 'none';
+            generateBtn.disabled = false;
+            alert('Failed to generate AI image. Please try again.');
+            console.error('Error:', error);
+        });
+    });
+});
+</script>
 {% endblock %}
+

@@ -4,8 +4,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
 from django.db.models import Q
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 from .models import Recipe, Category
 from .forms import RecipeForm
+from .ai_image import generate_ai_image_for_recipe
 
 
 class RecipeListView(ListView):
@@ -97,3 +100,70 @@ def home(request):
         'categories': categories,
     }
     return render(request, 'recipes/home.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def generate_ai_image(request):
+    """
+    AJAX endpoint to generate AI image for a recipe.
+    Expects POST data: title, description (optional), recipe_id (optional for updates)
+    """
+    title = request.POST.get('title', '').strip()
+    description = request.POST.get('description', '').strip()
+    recipe_id = request.POST.get('recipe_id')
+    
+    if not title:
+        return JsonResponse({
+            'success': False,
+            'error': 'Recipe title is required to generate an image.'
+        }, status=400)
+    
+    # Check if updating existing recipe - verify ownership
+    if recipe_id:
+        try:
+            recipe = Recipe.objects.get(pk=recipe_id)
+            if recipe.author != request.user and not request.user.is_superuser:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Permission denied.'
+                }, status=403)
+        except Recipe.DoesNotExist:
+            pass
+    
+    # Generate the AI image
+    image_file, filename = generate_ai_image_for_recipe(title, description)
+    
+    if image_file and filename:
+        # If updating existing recipe, save the image directly
+        if recipe_id:
+            try:
+                recipe = Recipe.objects.get(pk=recipe_id)
+                recipe.image.save(filename, image_file, save=True)
+                return JsonResponse({
+                    'success': True,
+                    'message': 'AI image generated and saved successfully!',
+                    'image_url': recipe.image.url if recipe.image else None
+                })
+            except Recipe.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Recipe not found.'
+                }, status=404)
+        else:
+            # For new recipes, store in session temporarily
+            # We'll return a data URL that the form can use
+            import base64
+            image_data = base64.b64encode(image_file.read()).decode('utf-8')
+            return JsonResponse({
+                'success': True,
+                'message': 'AI image generated! Save the recipe to keep the image.',
+                'image_data': f"data:image/png;base64,{image_data}",
+                'filename': filename
+            })
+    else:
+        return JsonResponse({
+            'success': False,
+            'error': 'Failed to generate AI image. Please ensure HUGGINGFACE_API_TOKEN is set in environment variables. Get a free token at https://huggingface.co/settings/tokens'
+        }, status=500)
+

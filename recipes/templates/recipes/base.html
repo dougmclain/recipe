@@ -44,6 +44,96 @@
             background-color: #e85a5a;
             border-color: #e85a5a;
         }
+        /* Recipe detail page improvements */
+        .recipe-detail-description {
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 0.25rem;
+        }
+        .card-body ul li {
+            margin-bottom: 0.5rem;
+        }
+        .ingredient-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        .ingredient-list li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+        }
+        .recipe-section {
+            padding: 1rem;
+            background-color: #fff;
+        }
+        @media (min-width: 992px) {
+            .recipe-detail-content .card {
+                margin-bottom: 1.5rem !important;
+            }
+        }
+
+        /* Print styles for PDF */
+        @media print {
+            body {
+                background: white;
+            }
+            .navbar, .footer, .no-print, .btn, .badge, .col-lg-4, .back-to-recipes {
+                display: none !important;
+            }
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+            .col-lg-8 {
+                max-width: 100%;
+                flex: 0 0 100%;
+            }
+            h1 {
+                font-size: 24pt;
+                margin-bottom: 10pt;
+                page-break-after: avoid;
+            }
+            h5, .section-title {
+                font-size: 14pt;
+                font-weight: bold;
+                margin-top: 15pt;
+                margin-bottom: 8pt;
+                page-break-after: avoid;
+                color: #000 !important;
+                border-bottom: 2pt solid #000 !important;
+            }
+            .recipe-detail-description {
+                background-color: transparent !important;
+                border-left: none !important;
+                padding: 0 !important;
+                margin-bottom: 15pt;
+            }
+            .recipe-section {
+                padding: 0;
+                margin-bottom: 20pt;
+                page-break-inside: avoid;
+            }
+            .ingredient-list {
+                padding-left: 20pt;
+                list-style: disc;
+            }
+            .ingredient-list li {
+                margin-bottom: 5pt;
+                padding-left: 0;
+                font-size: 11pt;
+                line-height: 1.4;
+            }
+            .ingredient-list li i {
+                display: none;
+            }
+            .instructions-text {
+                font-size: 11pt;
+                line-height: 1.6;
+            }
+            #printable-recipe {
+                page-break-before: auto;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
