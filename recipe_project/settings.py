@@ -25,12 +25,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-6o0=2lt2m^%(0z#43(-s+arp*82ow!i*^39xr20m^g)3ya@sjd"
+SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-6o0=2lt2m^%(0z#43(-s+arp*82ow!i*^39xr20m^g)3ya@sjd")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Default to True for development convenience, but allow override
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+
+# CSRF Trusted Origins (Required for Cloudflare Tunnel)
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://127.0.0.1').split(',')
 
 
 # Application definition

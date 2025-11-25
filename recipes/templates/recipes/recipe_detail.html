@@ -50,7 +50,20 @@
 
             <div class="recipe-section">
                 <h5 class="section-title text-primary border-bottom pb-2 mb-3">Instructions</h5>
-                <div class="instructions-text" style="white-space: pre-line; line-height: 1.8;">{{ recipe.instructions }}</div>
+                <div class="instructions-list">
+                    {% for step in recipe.instructions.splitlines %}
+                    {% if step.strip %}
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">{{ forloop.counter }}</span>
+                        </div>
+                        <div class="flex-grow-1" style="line-height: 1.6;">
+                            {{ step }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
             </div>
         </div>
 

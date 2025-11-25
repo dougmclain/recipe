@@ -1,5 +1,23 @@
 from django import forms
-from .models import Recipe
+from .models import Recipe, Category
+
+
+class CategoryForm(forms.ModelForm):
+    """Form for creating categories"""
+    class Meta:
+        model = Category
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Category Name'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Description (optional)'
+            }),
+        }
 
 
 class RecipeForm(forms.ModelForm):

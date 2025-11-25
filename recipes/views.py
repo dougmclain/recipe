@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from .models import Recipe, Category
-from .forms import RecipeForm
+from .forms import RecipeForm, CategoryForm
 from .ai_image import generate_ai_image_for_recipe
 
 
@@ -56,6 +56,18 @@ class RecipeDetailView(DetailView):
     model = Recipe
     template_name = 'recipes/recipe_detail.html'
     context_object_name = 'recipe'
+
+
+class CategoryCreateView(LoginRequiredMixin, CreateView):
+    """Create a new category"""
+    model = Category
+    form_class = CategoryForm
+    template_name = 'recipes/category_form.html'
+    success_url = reverse_lazy('recipe_list')
+
+    def form_valid(self, form):
+        # Optional: You could add logic here if needed, e.g. messaging
+        return super().form_valid(form)
 
 
 class RecipeCreateView(LoginRequiredMixin, CreateView):

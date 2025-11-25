@@ -58,17 +58,50 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="{{ form.ingredients.id_for_label }}" class="form-label">Ingredients *</label>
-                        {{ form.ingredients }}
-                        <small class="text-muted">List each ingredient on a new line</small>
+                        <label class="form-label">Ingredients *</label>
+                        <!-- Hidden original field -->
+                        <div style="display:none;">
+                            {{ form.ingredients }}
+                        </div>
+                        
+                        <!-- Dynamic Ingredient Builder -->
+                        <div id="ingredient-builder" class="bg-light p-3 rounded border">
+                            <div class="row mb-2">
+                                <div class="col-3 col-md-2"><small class="text-muted">Amount</small></div>
+                                <div class="col-4 col-md-3"><small class="text-muted">Unit</small></div>
+                                <div class="col-4 col-md-6"><small class="text-muted">Ingredient</small></div>
+                                <div class="col-1"></div>
+                            </div>
+                            <div id="ingredient-rows">
+                                <!-- Rows will be added here -->
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-ingredient-btn">
+                                <i class="bi bi-plus-circle"></i> Add Ingredient
+                            </button>
+                        </div>
+
                         {% if form.ingredients.errors %}
                         <div class="text-danger">{{ form.ingredients.errors }}</div>
                         {% endif %}
                     </div>
 
                     <div class="mb-3">
-                        <label for="{{ form.instructions.id_for_label }}" class="form-label">Instructions *</label>
-                        {{ form.instructions }}
+                        <label class="form-label">Instructions *</label>
+                        <!-- Hidden original field -->
+                        <div style="display:none;">
+                            {{ form.instructions }}
+                        </div>
+
+                        <!-- Dynamic Instruction Builder -->
+                        <div id="instruction-builder" class="bg-light p-3 rounded border">
+                            <div id="instruction-rows">
+                                <!-- Rows will be added here -->
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-instruction-btn">
+                                <i class="bi bi-plus-circle"></i> Add Step
+                            </button>
+                        </div>
+
                         {% if form.instructions.errors %}
                         <div class="text-danger">{{ form.instructions.errors }}</div>
                         {% endif %}
@@ -153,6 +186,225 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Ingredient Builder Logic ---
+    const ingredientsTextarea = document.getElementById('{{ form.ingredients.id_for_label }}');
+    const ingredientRowsContainer = document.getElementById('ingredient-rows');
+    const addIngredientBtn = document.getElementById('add-ingredient-btn');
+
+    const units = [
+        "", "cup(s)", "tsp", "tbsp", "g", "kg", "ml", "l", "oz", "lb", "pinch", "piece(s)", "can(s)", "package(s)", "clove(s)", "slice(s)"
+    ];
+
+    function createIngredientRow(amount="", unit="", item="") {
+        const row = document.createElement('div');
+        row.className = 'row mb-2 ingredient-row';
+        
+        // Amount
+        const colAmount = document.createElement('div');
+        colAmount.className = 'col-3 col-md-2';
+        const inputAmount = document.createElement('input');
+        inputAmount.type = 'text';
+        inputAmount.className = 'form-control form-control-sm ingredient-amount';
+        inputAmount.placeholder = 'Qty';
+        inputAmount.value = amount;
+        colAmount.appendChild(inputAmount);
+
+        // Unit
+        const colUnit = document.createElement('div');
+        colUnit.className = 'col-4 col-md-3';
+        const selectUnit = document.createElement('select');
+        selectUnit.className = 'form-select form-select-sm ingredient-unit';
+        units.forEach(u => {
+            const option = document.createElement('option');
+            option.value = u;
+            option.text = u || "-";
+            if (u === unit) option.selected = true;
+            selectUnit.appendChild(option);
+        });
+        colUnit.appendChild(selectUnit);
+
+        // Item
+        const colItem = document.createElement('div');
+        colItem.className = 'col-4 col-md-6';
+        const inputItem = document.createElement('input');
+        inputItem.type = 'text';
+        inputItem.className = 'form-control form-control-sm ingredient-item';
+        inputItem.placeholder = 'Ingredient name';
+        inputItem.value = item;
+        colItem.appendChild(inputItem);
+
+        // Delete
+        const colDelete = document.createElement('div');
+        colDelete.className = 'col-1';
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'btn btn-outline-danger btn-sm p-1 px-2';
+        btnDelete.innerHTML = '<i class="bi bi-x"></i>';
+        btnDelete.onclick = function() {
+            row.remove();
+            updateIngredientsTextarea();
+        };
+        colDelete.appendChild(btnDelete);
+
+        row.appendChild(colAmount);
+        row.appendChild(colUnit);
+        row.appendChild(colItem);
+        row.appendChild(colDelete);
+
+        // Add event listeners to update textarea
+        inputAmount.addEventListener('input', updateIngredientsTextarea);
+        selectUnit.addEventListener('change', updateIngredientsTextarea);
+        inputItem.addEventListener('input', updateIngredientsTextarea);
+
+        ingredientRowsContainer.appendChild(row);
+    }
+
+    function updateIngredientsTextarea() {
+        const rows = document.querySelectorAll('.ingredient-row');
+        let lines = [];
+        rows.forEach(row => {
+            const amount = row.querySelector('.ingredient-amount').value.trim();
+            const unit = row.querySelector('.ingredient-unit').value;
+            const item = row.querySelector('.ingredient-item').value.trim();
+            
+            if (amount || item) {
+                let line = "";
+                if (amount) line += amount + " ";
+                if (unit) line += unit + " ";
+                if (item) line += item;
+                lines.push(line.trim());
+            }
+        });
+        ingredientsTextarea.value = lines.join('\n');
+    }
+
+    function parseExistingIngredients() {
+        const text = ingredientsTextarea.value.trim();
+        if (!text) {
+            createIngredientRow(); // Add one empty row
+            return;
+        }
+
+        const lines = text.split('\n');
+        lines.forEach(line => {
+            let amount = "";
+            let unit = "";
+            let item = line.trim();
+
+            // Try to extract amount (number at start)
+            const amountMatch = item.match(/^([\d\./]+)\s+(.*)/);
+            if (amountMatch) {
+                amount = amountMatch[1];
+                item = amountMatch[2];
+                
+                // Try to extract unit
+                const sortedUnits = [...units].filter(u => u).sort((a, b) => b.length - a.length);
+                for (const u of sortedUnits) {
+                    // Check if item starts with unit (case insensitive)
+                    if (item.toLowerCase().startsWith(u.toLowerCase())) {
+                        // Ensure it's a whole word or followed by space
+                        const remainder = item.substring(u.length);
+                        if (remainder.length === 0 || remainder.startsWith(' ')) {
+                            unit = u;
+                            item = remainder.trim();
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            createIngredientRow(amount, unit, item);
+        });
+    }
+
+    if (addIngredientBtn) {
+        addIngredientBtn.addEventListener('click', () => createIngredientRow());
+        parseExistingIngredients();
+    }
+
+    // --- Instruction Builder Logic ---
+    const instructionsTextarea = document.getElementById('{{ form.instructions.id_for_label }}');
+    const instructionRowsContainer = document.getElementById('instruction-rows');
+    const addInstructionBtn = document.getElementById('add-instruction-btn');
+
+    function createInstructionRow(text="") {
+        const row = document.createElement('div');
+        row.className = 'd-flex mb-2 instruction-row align-items-start';
+        
+        // Step Number (visual only, updated dynamically)
+        const stepNum = document.createElement('span');
+        stepNum.className = 'me-2 mt-1 fw-bold step-number';
+        stepNum.innerText = '1.';
+        
+        // Text Input
+        const input = document.createElement('textarea');
+        input.className = 'form-control instruction-text';
+        input.placeholder = 'Describe this step...';
+        input.rows = 2;
+        input.value = text;
+        
+        // Delete Button
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'btn btn-outline-danger btn-sm ms-2';
+        btnDelete.innerHTML = '<i class="bi bi-x"></i>';
+        btnDelete.onclick = function() {
+            row.remove();
+            updateStepNumbers();
+            updateInstructionsTextarea();
+        };
+
+        row.appendChild(stepNum);
+        row.appendChild(input);
+        row.appendChild(btnDelete);
+
+        // Event listener
+        input.addEventListener('input', updateInstructionsTextarea);
+
+        instructionRowsContainer.appendChild(row);
+        updateStepNumbers();
+    }
+
+    function updateStepNumbers() {
+        const rows = document.querySelectorAll('.instruction-row');
+        rows.forEach((row, index) => {
+            row.querySelector('.step-number').innerText = (index + 1) + '.';
+        });
+    }
+
+    function updateInstructionsTextarea() {
+        const rows = document.querySelectorAll('.instruction-row');
+        let lines = [];
+        rows.forEach(row => {
+            const text = row.querySelector('.instruction-text').value.trim();
+            if (text) {
+                lines.push(text);
+            }
+        });
+        instructionsTextarea.value = lines.join('\n');
+    }
+
+    function parseExistingInstructions() {
+        const text = instructionsTextarea.value.trim();
+        if (!text) {
+            createInstructionRow(); // Add one empty row
+            return;
+        }
+
+        const lines = text.split('\n');
+        lines.forEach(line => {
+            if (line.trim()) {
+                createInstructionRow(line.trim());
+            }
+        });
+    }
+
+    if (addInstructionBtn) {
+        addInstructionBtn.addEventListener('click', () => createInstructionRow());
+        parseExistingInstructions();
+    }
+
+    // --- AI Image Generation Logic ---
     const generateBtn = document.getElementById('generateAIImageBtn');
     const loadingDiv = document.getElementById('aiImageLoading');
     const previewDiv = document.getElementById('aiImagePreview');
