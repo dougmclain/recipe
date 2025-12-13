@@ -144,7 +144,15 @@ def generate_ai_image(request):
             pass
     
     # Generate the AI image
-    image_file, filename = generate_ai_image_for_recipe(title, description)
+    try:
+        image_file, filename = generate_ai_image_for_recipe(title, description)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'Exception during image generation: {str(e)}'
+        }, status=500)
     
     if image_file and filename:
         # If updating existing recipe, save the image directly
@@ -174,8 +182,20 @@ def generate_ai_image(request):
                 'filename': filename
             })
     else:
+        # Check if token exists for better error message
+        import os
+        from pathlib import Path
+        from dotenv import load_dotenv
+        load_dotenv(Path(__file__).resolve().parent.parent / '.env')
+        token = os.environ.get('HUGGINGFACE_API_TOKEN', '')
+        
+        if not token:
+            error_msg = 'HUGGINGFACE_API_TOKEN not found. Please add it to your .env file.'
+        else:
+            error_msg = f'Image generation failed. Token found (starts with {token[:10]}...). Check server console for details.'
+        
         return JsonResponse({
             'success': False,
-            'error': 'Failed to generate AI image. Please ensure HUGGINGFACE_API_TOKEN is set in environment variables. Get a free token at https://huggingface.co/settings/tokens'
+            'error': error_msg
         }, status=500)
 

@@ -1,23 +1,28 @@
-import requests
 import io
 from PIL import Image
 from django.core.files.base import ContentFile
 from django.conf import settings
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Ensure .env is loaded
+load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 
 class AIImageGenerator:
     """
-    Generate AI images using Hugging Face's free Inference API.
+    Generate AI images using Hugging Face's Inference Providers.
     Falls back to placeholder if API fails or no token provided.
     """
     
-    # Free models available on Hugging Face
-    DEFAULT_MODEL = "stabilityai/stable-diffusion-2-1"
+    # Free model available on Hugging Face
+    DEFAULT_MODEL = "black-forest-labs/FLUX.1-dev"
     
     def __init__(self):
         self.api_token = os.environ.get('HUGGINGFACE_API_TOKEN', '')
-        self.api_url = f"https://api-inference.huggingface.co/models/{self.DEFAULT_MODEL}"
+        if not self.api_token:
+            print("WARNING: HUGGINGFACE_API_TOKEN not found in environment")
     
     def generate_recipe_image(self, recipe_title, recipe_description=""):
         """
@@ -68,7 +73,7 @@ class AIImageGenerator:
     
     def _call_api(self, prompt, max_retries=3):
         """
-        Call Hugging Face Inference API.
+        Call Hugging Face Inference API using huggingface_hub library.
         
         Args:
             prompt: Text prompt for image generation
@@ -77,27 +82,43 @@ class AIImageGenerator:
         Returns:
             bytes: Image data or None if failed
         """
-        headers = {"Authorization": f"Bearer {self.api_token}"}
-        payload = {"inputs": prompt}
-        
-        for attempt in range(max_retries):
-            response = requests.post(
-                self.api_url,
-                headers=headers,
-                json=payload,
-                timeout=60
-            )
+        try:
+            from huggingface_hub import InferenceClient
             
-            if response.status_code == 200:
-                return response.content
-            elif response.status_code == 503:
-                # Model is loading, wait and retry
-                import time
-                time.sleep(10)
-                continue
-            else:
-                print(f"API Error: {response.status_code} - {response.text}")
-                return None
+            client = InferenceClient(token=self.api_token)
+            
+            for attempt in range(max_retries):
+                try:
+                    # Generate image using the new API
+                    image = client.text_to_image(
+                        prompt=prompt,
+                        model=self.DEFAULT_MODEL
+                    )
+                    
+                    # Convert PIL Image to bytes
+                    img_io = io.BytesIO()
+                    image.save(img_io, format='PNG')
+                    img_io.seek(0)
+                    return img_io.read()
+                    
+                except Exception as e:
+                    error_str = str(e).lower()
+                    if 'loading' in error_str or '503' in error_str:
+                        # Model is loading, wait and retry
+                        import time
+                        print(f"Model loading, waiting... (attempt {attempt + 1})")
+                        time.sleep(10)
+                        continue
+                    else:
+                        print(f"API Error: {e}")
+                        return None
+                        
+        except ImportError:
+            print("huggingface_hub not installed. Run: pip install huggingface_hub")
+            return None
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            return None
         
         return None
 
